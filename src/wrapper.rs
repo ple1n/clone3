@@ -2,8 +2,7 @@ use crate::{CloneArgs, Flags};
 #[cfg(feature = "linux_5-7")]
 use std::os::unix::io::AsRawFd;
 use std::{
-    convert::TryInto,
-    os::{raw::c_long, unix::io::RawFd},
+    convert::TryInto, io, os::{raw::c_long, unix::io::RawFd}
 };
 use uapi::{c::pid_t, Errno};
 
@@ -209,12 +208,21 @@ impl<'a> Clone3<'a> {
     /// Panics if the system call returns a value that neither indicates failure nor is convertible
     /// to [`pid_t`](pid_t) which  could happen on overflow due to different type sizes. This is a
     /// bug in the Linux kernel or the libc bindings used by this crate.
-    pub unsafe fn call(&mut self) -> Result<pid_t, Errno> {
+    pub unsafe fn call_raw(&mut self) -> Result<pid_t, Errno> {
         if let Some(reason) = find_incompatible_flags(self.flags) {
             panic!("flags {:?} are inconsistent: {}", self.flags, reason);
         }
         let return_value = self.call_unchecked();
         handle_return_value(return_value)
+    }
+
+    pub unsafe fn call(&mut self) -> Result<pid_t, io::Error> {
+        if let Some(reason) = find_incompatible_flags(self.flags) {
+            panic!("flags {:?} are inconsistent: {}", self.flags, reason);
+        }
+        let return_value = self.call_unchecked();
+        let val = handle_return_value(return_value).map_err(io::Error::from);
+        val
     }
 
     /// Performs the system call.
