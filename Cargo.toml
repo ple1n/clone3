@@ -1,5 +1,5 @@
 [package]
-name = "clone3"
+name = "nsproxy-clone3"
 version = "0.2.3" # remember to update readme and html_root_url
 edition = "2021"
 
